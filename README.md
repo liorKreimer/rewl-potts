@@ -22,10 +22,8 @@ cd rewl-potts
 conda create -n mpi_env python=3.10 numpy scipy matplotlib mpich mpi4py
 conda activate mpi_env
 
-## Examples
-
 # 3. run a small demo (8 ranks, 2 walkers/window, L=10, q=10)
-mpiexec -n 8 python rewl_multi.py 0.75 2 200 314 10 10 1.01 0.8
+mpiexec -n 8 python rewl_multi.py 0.75 2 200 314 10 10 1.01 0.8 / # mpirun -n 8 python rewl_multi.py 0.75 2 200 314 10 10 1.01 0.8
 
 * `overlap`  – fraction (0–1) of energy range shared between neighbouring windows (0.75)
 * `walkers/window` – number of independent WL walkers in each window  (2)
