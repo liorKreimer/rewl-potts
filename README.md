@@ -22,38 +22,24 @@ cd rewl-potts
 conda create -n mpi_env python=3.10 numpy scipy matplotlib mpich mpi4py
 conda activate mpi_env
 
-# 3. run a small demo (8 ranks, 2 walkers/window, L=10, q=10)
-mpiexec -n 8 python rewl_multi.py 0.75 2 200 314 10 10 1.01 0.8
+## Examples
+
+| What we want to run | Command |
+|---------------------|---------|
+| **1 MPI rank** (serial run), 0.75 window overlap, **1 walker/window**, 500 sweeps/iter, RNG seed = 42, *L = 4*, *q = 2* |<br>`mpiexec -n 1 python rewl_multi.py 0.75 1 500 42 4 2 1.0001 0.8` |
+| **3 MPI ranks**, 0.50 overlap, **1 walker/window**, 1000 sweeps/iter, seed = 14 *(matches the original C++ example)* |<br>`mpiexec -n 3 python rewl_multi.py 0.5 1 1000 14 4 2 1.0001 0.8` |
+| **8 MPI ranks**, 0.75 overlap, **2 walkers/window** (⇒ 4 windows), 2000 sweeps/iter, seed = 314, *L = 10*, *q = 10* |<br>`mpiexec -n 8 python rewl_multi.py 0.75 2 2000 314 10 10 1.000001 0.8` |
+
+* `overlap`  – fraction (0–1) of energy range shared between neighbouring windows  
+* `walkers/window` – number of independent WL walkers in each window  
+* `sweeps/iter` – Metropolis sweeps between histogram-flatness checks  
+* `seed`    – random-number seed offset (ranks add 17 × rank)  
+* `L`, `q`   – lattice size and Potts-state count  
+* `f_final`  – stop when ln *f* ≤ ln (*f_final*)  
+* `flatness`  – histogram flatness criterion (e.g. 0.8 = 80 %)
+
 
 # 4. stitch density of states + plots
 python analyse_rewl.py
 # --> ln_g_stitched.dat, lng_curve.png, beta_curve.png, caloric_curve.png
 
-Command-line parameters (in order)
-Arg	Meaning
-0.75	window overlap fraction (75 %)
-2	walkers per energy window
-200	sweeps per Wang–Landau iteration
-314	random-seed offset
-10	lattice linear size L (=> L² spins)
-10	q – number of Potts states
-1.01	final modification factor f<sub>final</sub> (stop when ln f ≤ ln 1.01)
-0.8	histogram flatness criterion (80 %)
-
-Requirements
-Python ≥ 3.9
-numpy, scipy, matplotlib
-mpi4py plus an MPI implementation (MPICH or Open MPI)
-
-Citing
-If you use this code in a publication, please cite:
-
-pgsql
-Copy
-Edit
-@article{Li2017_BMSP_REWL,
-  author    = {Ying Wai Li and others},
-  title     = {Replica Exchange Wang–Landau Sampling},
-  journal   = {Book on Monte Carlo and Spin Physics},
-  year      = 2017
-}
