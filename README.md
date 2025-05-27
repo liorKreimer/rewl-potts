@@ -27,12 +27,12 @@ conda activate mpi_env
 # 3. run a small demo (8 ranks, 2 walkers/window, L=10, q=10)
 mpiexec -n 8 python rewl_multi.py 0.75 2 200 314 10 10 1.01 0.8
 
-* `overlap`  – fraction (0–1) of energy range shared between neighbouring windows  
-* `walkers/window` – number of independent WL walkers in each window  
-* `sweeps/iter` – Metropolis sweeps between histogram-flatness checks  
-* `seed`    – random-number seed offset (ranks add 17 × rank)  
-* `L`, `q`   – lattice size and Potts-state count  
-* `f_final`  – stop when ln *f* ≤ ln (*f_final*)  
+* `overlap`  – fraction (0–1) of energy range shared between neighbouring windows (0.75)
+* `walkers/window` – number of independent WL walkers in each window  (2)
+* `sweeps/iter` – Metropolis sweeps between histogram-flatness checks  (200)
+* `seed`    – random-number seed offset (ranks add 17 × rank)  (314)
+* `L`, `q`   – lattice size and Potts-state count  (10)
+* `f_final`  – stop when ln *f* ≤ ln (*f_final*)  (1.01)
 * `flatness`  – histogram flatness criterion (e.g. 0.8 = 80 %)
 
 
