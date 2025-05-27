@@ -28,3 +28,32 @@ mpiexec -n 8 python rewl_multi.py 0.75 2 200 314 10 10 1.01 0.8
 # 4. stitch density of states + plots
 python analyse_rewl.py
 # --> ln_g_stitched.dat, lng_curve.png, beta_curve.png, caloric_curve.png
+
+Command-line parameters (in order)
+Arg	Meaning
+0.75	window overlap fraction (75 %)
+2	walkers per energy window
+200	sweeps per Wang–Landau iteration
+314	random-seed offset
+10	lattice linear size L (=> L² spins)
+10	q – number of Potts states
+1.01	final modification factor f<sub>final</sub> (stop when ln f ≤ ln 1.01)
+0.8	histogram flatness criterion (80 %)
+
+Requirements
+Python ≥ 3.9
+numpy, scipy, matplotlib
+mpi4py plus an MPI implementation (MPICH or Open MPI)
+
+Citing
+If you use this code in a publication, please cite:
+
+pgsql
+Copy
+Edit
+@article{Li2017_BMSP_REWL,
+  author    = {Ying Wai Li and others},
+  title     = {Replica Exchange Wang–Landau Sampling},
+  journal   = {Book on Monte Carlo and Spin Physics},
+  year      = 2017
+}
