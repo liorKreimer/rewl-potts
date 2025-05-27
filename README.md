@@ -24,11 +24,8 @@ conda activate mpi_env
 
 ## Examples
 
-| What we want to run | Command |
-|---------------------|---------|
-| **1 MPI rank** (serial run), 0.75 window overlap, **1 walker/window**, 500 sweeps/iter, RNG seed = 42, *L = 4*, *q = 2* |<br>`mpiexec -n 1 python rewl_multi.py 0.75 1 500 42 4 2 1.0001 0.8` |
-| **3 MPI ranks**, 0.50 overlap, **1 walker/window**, 1000 sweeps/iter, seed = 14 *(matches the original C++ example)* |<br>`mpiexec -n 3 python rewl_multi.py 0.5 1 1000 14 4 2 1.0001 0.8` |
-| **8 MPI ranks**, 0.75 overlap, **2 walkers/window** (⇒ 4 windows), 2000 sweeps/iter, seed = 314, *L = 10*, *q = 10* |<br>`mpiexec -n 8 python rewl_multi.py 0.75 2 2000 314 10 10 1.000001 0.8` |
+# 3. run a small demo (8 ranks, 2 walkers/window, L=10, q=10)
+mpiexec -n 8 python rewl_multi.py 0.75 2 200 314 10 10 1.01 0.8
 
 * `overlap`  – fraction (0–1) of energy range shared between neighbouring windows  
 * `walkers/window` – number of independent WL walkers in each window  
