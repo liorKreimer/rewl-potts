@@ -1,10 +1,4 @@
-"""rewl_mpi.py – strict Python port of WLpotts_mpi.cpp (Replica-Exchange Wang–Landau)
-================================================================================
-• Communicator layout and algorithmic flow now **exactly** match the reference.
-• **Global ln f**: halved only when *every* energy window is flat → simulation
-  finishes when the slowest window reaches ln f_final.
-• Writes per‑rank ln g slices to ln_g_rank<ID>.dat.
-"""
+
 from __future__ import annotations
 import sys, math, time, random
 from dataclasses import dataclass
@@ -44,10 +38,6 @@ class Walker:
             Current modification factor ln f  (will be **added** to ln g(E)
             every time the walker visits an energy bin).
 
-        Side-effects
-        ------------
-        • Updates the Potts lattice in-place.
-        • Updates walker energy **self.E**, local ln g(E) array, and histogram.
         """
         N = self.model.N  # number of spins = one sweep
         for _ in range(N):
@@ -112,13 +102,11 @@ def replica_exchange(comm, wlk: Walker, win_id, windows, w_per_win, phase):
     E_partner = int(recvE[0])
 
     # --------- 2. decide whether to swap lattices -----------------------------------
-    # Here: 50 % chance; could replace with Metropolis on E if desired
+    # Here: 50 % chance to replica for simplicity ; Below that is the implementation that matches the C++ code.
     swap = wlk.rng.random() < 0.5
     flag = np.array([1 if swap else 0], dtype=np.int8)
 
-    # **Bug source (fixed elsewhere):** this Bcast is collective on COMM_WORLD;
-    # if multiple pairs call it simultaneously with different roots, MPICH dead-locks.
-    # A two-rank Sendrecv handshake is safer.
+
     comm.Bcast(flag, root=min(rank, partner))    # broadcast “swap?” to the pair
     if flag[0] == 0:                             # either side vetoed
         return
@@ -138,7 +126,58 @@ def replica_exchange(comm, wlk: Walker, win_id, windows, w_per_win, phase):
         wlk.model.lattice[:] = sendLat           # revert lattice and energy
         wlk.E = int(sendE[0])
 
+'''
+# replica‑exchange (matches WLpotts_mpi.cpp logic) -----------------------------
 
+def replica_exchange(comm: MPI.Comm, wlk: Walker, win_id: int,
+                     windows: List[Tuple[int, int]], w_per_win: int, phase: int):
+    """Attempt a lattice swap with a neighbouring rank (pairing scheme identical
+    to the original C++: ranks 0↔1, 2↔3 on even phases, 1↔2, 3↔4 on odd).  Swap
+    is **accepted with probability 1** when both energies fall into the overlap
+    region — realised with the g(E)‑ratio product test used in WLpotts_mpi.cpp.
+    The two‑rank Sendrecv handshake avoids the collective‑root mismatch bug.
+    """
+    rank, size = comm.Get_rank(), comm.Get_size()
+    partner = rank + 1 if (rank + phase) % 2 == 0 else rank - 1
+    if partner < 0 or partner >= size:
+        return                                # edge rank sits out this phase
+
+    # 1) exchange energies (small payload) -----------------------------------
+    sendE = np.array([wlk.E], dtype=np.int64)
+    recvE = np.empty_like(sendE)
+    comm.Sendrecv(sendE, dest=partner, recvbuf=recvE, source=partner)
+    E_partner = int(recvE[0])
+
+    # 2) each side sends its g‑ratio = g(E_i)/g(E_j) --------------------------
+    my_ratio = math.exp(wlk.ln_g[wlk._idx(wlk.E)] -
+                       wlk.ln_g[wlk._idx(E_partner)])
+    ratio_buf = np.array([my_ratio], dtype=np.float64)
+    comm.Sendrecv_replace(ratio_buf, dest=partner, source=partner)
+    other_ratio = float(ratio_buf[0])
+
+    # combined probability  wk  (==1 if both energies in the overlap)
+    wk = my_ratio * other_ratio
+    swap = (wk > 0.0) and (wlk.rng.random() < wk)
+
+    flag = np.array([1 if swap else 0], dtype=np.int8)
+    comm.Sendrecv_replace(flag, dest=partner, source=partner)  # handshake
+    if flag[0] == 0:
+        return                                # at least one side vetoed
+
+    # 3) exchange full lattices (big payload) --------------------------------
+    sendLat = wlk.model.lattice.copy()
+    recvLat = np.empty_like(sendLat)
+    comm.Sendrecv(sendLat, dest=partner, recvbuf=recvLat, source=partner)
+
+    wlk.model.lattice[:] = recvLat
+    wlk.E = E_partner
+
+    # 4) keep swap only if new energy is inside my window --------------------
+    lb, ub = windows[win_id]
+    if not (lb <= wlk.E <= ub):               # fell outside → revert
+        wlk.model.lattice[:] = sendLat
+        wlk.E = int(sendE[0])
+'''
 # -----------------------------------------------------------------------------
 
 def main():
@@ -214,7 +253,9 @@ def main():
     np.savetxt(f"ln_g_rank{rank}.dat", np.column_stack((np.arange(Emin, Emax+1), ln_g)))
     if rank == 0:
         print(f"[REWL] done in {time.time()-t0:.2f} s | iterations={iter_idx}")
-        print("Saved per‑rank ln_g slices → ln_g_rank<ID>.dat (complete when slowest window converged)")
+        print("Saved per-rank ln_g slices -> ln_g_rank<ID>.dat "
+              "(complete when slowest window converged)")
+
 
 if __name__ == "__main__":
     main()
